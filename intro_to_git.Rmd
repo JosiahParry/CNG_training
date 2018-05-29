@@ -328,5 +328,5 @@ git pull
 
 Fork `josiahparry/CNG_training` repository
 Clone that repository 
-Add an acronym and its definition to `acronyms.csv`
+Add an abbreviation and its definition to `data/abbreviations.R`
 

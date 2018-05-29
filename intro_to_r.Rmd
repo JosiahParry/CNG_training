@@ -1,0 +1,225 @@
+---
+title: "Introduction to R"
+author: "Josiah Parry"
+date: "5/25/2018"
+output: slidy_presentation
+---
+
+
+# R as a Calculator
+
+You can use R to do basic math! R follows the order of operations (PEMDAS), so use parentheses appropriately!
+
+* `+`: addition
+* `-`: subtraction
+* `/`: division
+* `^`: exponentiation
+
+# Assignment & Variables
+
+When doing algebra, we used `X` to represent some number. Similarly, we can assign variables in R using the `<-` assignment operator.
+
+Let's solve a simple linear formula! Remember, `y = mx + b`
+```{r}
+m <- 3        # set slope
+x <- 10       # set x value
+b <- 7        # set intercept
+
+y <- m*x + b  # identify y value
+
+y             # print the value of y
+```
+
+# Variables with multiple values
+
+Variables can take on a number of values. In R, this is a called a vector. Vectors can only take on one data type (i.e. numeric, character, or logical).
+
+We define a vector with the `c()` function (combine). Each element is separated by a comma. We can apply an operation to each element of a vector. 
+
+```{r}
+x <- c(2, 3, 5, 7, 11) # first 5 prime numbers
+m <- 3                 # set slope
+b <- 7                 # set intercept 
+
+y <- m*x + b           # solve for y
+
+y                      # identify value of y for each value of x
+```
+
+# Building SQL-like tables using vectors
+
+We can build tables like we find in SQL using vectors. Each vector will become it's own column. Tables in R are called `data frames`. 
+
+We build them using the `data.frame()` function. Each argument is a new column. 
+
+Example structure:
+```{r, eval = F}
+data.frame(
+  col_name  = values,
+  col_name2 = values
+)
+```
+
+# Building a Data Frame
+
+
+```{r}
+x <- c(2, 3, 5, 7, 11)
+y <- 3*x + 7 
+
+data.frame(
+  x = x,
+  y = y
+)
+```
+
+# Using Packages & the Tidyverse
+
+* R relies on packages for more functionality. 
+* There is the **[Tidyverse](https://www.tidyverse.org/)**, a collection of packages used for data manipulation.
+* Install packages using `install.packages("package_name")`.
+* Load packages using `library(package_name)`.
+
+```{r eval = FALSE, message=FALSE, warning=FALSE}
+install.packages("tidyverse")
+```
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+```
+
+
+# SQL functionality with the Tidyverse: selecting
+
+* `select()` selects specified columns from a data frame.
+  * `select(data_frame, column_name)`
+
+### Star Wars!
+
+* `tidyverse` package has a built in data frame called `starwars`
+  * Type `starwars` into your console to print it
+
+# Selecting Star Wars Characters
+
+* Use the `select()` function on the `starwars` data set to select:
+  * `name, height, & mass` columns and assign it to `star_chars`
+
+```{r}
+star_chars <- select(starwars, name, height, mass)
+star_chars
+```
+
+
+# Making & Modifying New Columns: `mutate()`
+
+* New columns can be created using the `mutate()` function. 
+   * `mutate(data_frame, new_col = operation)`
+* Calculate the ratio of mass to height, call this mh_ratio
+
+```{r}
+star_chars <- mutate(star_chars, mh_ratio = mass / height)
+star_chars
+```
+
+# Chaining Functions using the Pipe (`%>%`)
+
+<img src="images/magritte.jpg" width="900px"/>
+
+
+# `%>%`
+
+* The pipe allows you to chain functions together.
+* Sends data frome the left, to the right
+* Since `data_frame` is the first argument of almost all of the functions in the **tidyverse** you can chain these function together. 
+
+
+```{r}
+starwars %>% 
+  select(name, mass, height) %>% 
+  mutate(mh_ratio = mass / height)
+```
+
+
+# Filtering data: `filter()`
+
+`filter()` allows us to narrow down our observations based on a series of logical statements.
+
+Logical operators:
+
+* `<` : less than
+* `>` : greater than
+* `<=` : less than or equal to
+* `>=` : greater than or equal to
+* `==`: equal to
+* `!=`: not equal to
+
+# Filtering `mh_ratio`
+
+Let's build upon our previous chain and identify all characters with a `mh_ratio` that is greater than `0.5`
+
+```{r}
+star_chars %>% 
+  filter(mh_ratio > .5)
+```
+
+# Reading Data from Flat Files
+
+* Most flat files you use will be `csv`s. 
+* Each value is a separated by a comma. 
+* In order to read these files, we will use the function `read_csv()`. 
+
+```{r message=FALSE}
+election <- read_csv("data/2016_election.csv")
+head(election)
+```
+
+# Exercise!
+
+#### How many votes were cast for all three candidates in each state?
+
+```{r}
+mutate(election, total_votes = clinton + trump + johnson)
+```
+
+# Let's Play a Game of What If
+
+#### What if everyone who voted for Gary Johnson Voted for Hillary Clinton? 
+An exploration of the [spoiler effect](https://en.wikipedia.org/wiki/Spoiler_effect)
+
+* Create a new object called `what_if` that has:
+  * a column called `clinton_johnson` which is the sum of the two candidates' votes.
+  * a new variable called `clinton_win` which checks to see if Clinton had more votes than Trump
+  
+```{r}
+what_if <- election %>% 
+  mutate(clinton_johnson = clinton + johnson,
+         clinton_win = clinton_johnson > trump)
+```
+  
+
+# Aggregating: `summarise()`
+
+### How many total electoral votes were cast?
+
+* To answer this we need to aggregate our data, the `summarise()` function does this. 
+* Groups all rows together and performs an operation on them. 
+* Think of this as the grouped `mutate()`
+
+```{r}
+what_if %>% 
+  summarise(total_ev = sum(electoral_votes)) # 538 is the correct answer btw
+```
+
+# Back to the Game: `group_by()`
+
+* What if we wanted to know how many electoral votes were cast for our _what if_ scenario?
+* We created an indicator variable which tells us if `clinton_johnson` had more votes than Trump.
+* We can separate our data based on these levels and perform an operation on them using `group_by()`
+
+```{r}
+what_if %>% 
+  group_by(clinton_win) %>% 
+  summarise(ev_cast = sum(electoral_votes))
+```
+
+
+
